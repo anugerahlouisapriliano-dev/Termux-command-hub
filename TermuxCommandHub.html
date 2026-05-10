@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Termux Command Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #000000;
+    --bg-deep: #050505;
+    --bg-panel: #0a0a0a;
+    --bg-card: #0d0d0d;
+    --bg-hover: #111111;
+    --neon-green: #39FF14;
+    --neon-green-dim: #1a7a08;
+    --neon-green-glow: rgba(57, 255, 20, 0.15);
+    --neon-green-faint: rgba(57, 255, 20, 0.05);
+    --electric-blue: #00D4FF;
+    --electric-blue-dim: #006680;
+    --electric-blue-glow: rgba(0, 212, 255, 0.15);
+    --amber: #FFB800;
+    --red-alert: #FF3A3A;
+    --text-primary: #e8e8e8;
+    --text-secondary: #888888;
+    --text-dim: #444444;
+    --border: #1a1a1a;
+    --border-glow: rgba(57, 255, 20, 0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg-void);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Noise texture */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0.4;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(0,0,0,0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+  }
+
+  .header-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    gap: 12px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid var(--neon-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--neon-green);
+    animation: blink-border 3s infinite;
+    position: relative;
+  }
+
+  .logo-icon::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 1px solid rgba(57, 255, 20, 0.1);
+  }
+
+  @keyframes blink-border {
+    0%, 90%, 100% { box-shadow: 0 0 8px var(--neon-green-glow); }
+    95% { box-shadow: none; }
+  }
+
+  .logo-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--neon-green);
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 12px rgba(57, 255, 20, 0.6);
+  }
+
+  .logo-text span { color: var(--electric-blue); }
+
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--neon-green);
+    border-radius: 50%;
+    animation: pulse-dot 2s infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 48px 16px 32px;
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .hero-pre {
+    font-size: 10px;
+    color: var(--neon-green-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hero-pre::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 1px;
+    background: var(--neon-green-dim);
+  }
+
+  .hero-title {
+    font-size: clamp(22px, 5vw, 36px);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    color: #fff;
+  }
+
+  .hero-title .accent-green {
+    color: var(--neon-green);
+    text-shadow: 0 0 20px rgba(57, 255, 20, 0.5);
+  }
+
+  .hero-title .accent-blue {
+    color: var(--electric-blue);
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+  }
+
+  .hero-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    max-width: 520px;
+    margin-bottom: 24px;
+    line-height: 1.8;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat-num {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--neon-green);
+    text-shadow: 0 0 10px rgba(57, 255, 20, 0.4);
+  }
+
+  .stat-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* Terminal prompt animation */
+  .terminal-prompt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    padding: 8px 12px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--neon-green);
+  }
+
+  .prompt-user { color: var(--neon-green); }
+  .prompt-host { color: var(--electric-blue); }
+  .prompt-path { color: var(--amber); }
+
+  .cursor {
+    display: inline-block;
+    width: 7px; height: 13px;
+    background: var(--neon-green);
+    animation: blink-cursor 1s step-end infinite;
+    vertical-align: middle;
+  }
+
+  @keyframes blink-cursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* ── SEARCH ── */
+  .search-section {
+    padding: 0 16px 24px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-prefix {
+    position: absolute;
+    left: 14px;
+    color: var(--neon-green);
+    font-size: 13px;
+    pointer-events: none;
+    user-select: none;
+    z-index: 1;
+  }
+
+  #search-input {
+    width: 100%;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-top: 1px solid var(--neon-green-dim);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 12px 40px 12px 32px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+
+  #search-input::placeholder { color: var(--text-dim); }
+
+  #search-input:focus {
+    border-color: var(--neon-green);
+    box-shadow: 0 0 16px var(--neon-green-glow), inset 0 0 8px rgba(57, 255, 20, 0.03);
+  }
+
+  .search-count {
+    position: absolute;
+    right: 14px;
+    font-size: 10px;
+    color: var(--text-dim);
+    pointer-events: none;
+  }
+
+  /* ── NAV TABS ── */
+  .nav-tabs {
+    padding: 0 16px 20px;
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .nav-tabs::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 7px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    position: relative;
+  }
+
+  .tab-btn:hover {
+    border-color: var(--neon-green-dim);
+    color: var(--neon-green);
+  }
+
+  .tab-btn.active {
+    background: var(--neon-green-faint);
+    border-color: var(--neon-green);
+    color: var(--neon-green);
+    box-shadow: 0 0 10px var(--neon-green-glow);
+  }
+
+  .tab-btn .tab-count {
+    display: inline-block;
+    background: var(--neon-green-dim);
+    color: #000;
+    font-size: 8px;
+    padding: 0 4px;
+    margin-left: 6px;
+    font-weight: 700;
+  }
+
+  .tab-btn.active .tab-count {
+    background: var(--neon-green);
+  }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+
+  /* ── CATEGORY SECTION ── */
+  .category-section {
+    margin-bottom: 40px;
+    animation: fadeInUp 0.4s ease both;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .category-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .category-icon {
+    width: 32px; height: 32px;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .category-icon.green { border-color: var(--neon-green); color: var(--neon-green); box-shadow: 0 0 8px var(--neon-green-glow); }
+  .category-icon.blue { border-color: var(--electric-blue); color: var(--electric-blue); box-shadow: 0 0 8px var(--electric-blue-glow); }
+  .category-icon.amber { border-color: var(--amber); color: var(--amber); box-shadow: 0 0 8px rgba(255,184,0,0.2); }
+  .category-icon.red { border-color: var(--red-alert); color: var(--red-alert); box-shadow: 0 0 8px rgba(255,58,58,0.2); }
+
+  .category-title-group { flex: 1; }
+
+  .category-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .category-desc {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .category-badge {
+    font-size: 9px;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+  }
+
+  /* ── COMMAND CARDS GRID ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  @media (min-width: 600px) {
+    .cards-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ── COMMAND CARD ── */
+  .cmd-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.1s;
+  }
+
+  .cmd-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 2px;
+    height: 100%;
+    background: var(--neon-green);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .cmd-card:hover {
+    border-color: #1f1f1f;
+    box-shadow: 0 0 16px rgba(0,0,0,0.5);
+    transform: translateY(-1px);
+  }
+
+  .cmd-card:hover::before { opacity: 1; }
+
+  .cmd-card.blue::before { background: var(--electric-blue); }
+  .cmd-card.amber::before { background: var(--amber); }
+  .cmd-card.red::before { background: var(--red-alert); }
+
+  .card-inner { padding: 12px 14px; }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .card-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    padding-top: 2px;
+  }
+
+  .cmd-tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .cmd-tag {
+    font-size: 8px;
+    padding: 2px 6px;
+    background: rgba(57, 255, 20, 0.06);
+    border: 1px solid rgba(57, 255, 20, 0.15);
+    color: var(--neon-green-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .cmd-tag.blue {
+    background: rgba(0, 212, 255, 0.06);
+    border-color: rgba(0, 212, 255, 0.15);
+    color: var(--electric-blue-dim);
+  }
+
+  .cmd-tag.amber {
+    background: rgba(255, 184, 0, 0.06);
+    border-color: rgba(255, 184, 0, 0.15);
+    color: #664a00;
+  }
+
+  .cmd-code {
+    background: var(--bg-void);
+    border: 1px solid #111;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--neon-green);
+    word-break: break-all;
+    margin-bottom: 10px;
+    position: relative;
+    line-height: 1.6;
+  }
+
+  .cmd-code .prompt-char {
+    color: var(--text-dim);
+    user-select: none;
+    margin-right: 6px;
+  }
+
+  .cmd-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .copy-btn {
+    background: transparent;
+    border: 1px solid var(--neon-green-dim);
+    color: var(--neon-green-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    padding: 5px 12px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .copy-btn:hover {
+    background: var(--neon-green-glow);
+    border-color: var(--neon-green);
+    color: var(--neon-green);
+    box-shadow: 0 0 8px var(--neon-green-glow);
+  }
+
+  .copy-btn.copied {
+    border-color: var(--electric-blue);
+    color: var(--electric-blue);
+    background: rgba(0, 212, 255, 0.08);
+    box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+  }
+
+  .copy-btn.blue-style { border-color: var(--electric-blue-dim); color: var(--electric-blue-dim); }
+  .copy-btn.blue-style:hover { background: var(--electric-blue-glow); border-color: var(--electric-blue); color: var(--electric-blue); box-shadow: 0 0 8px var(--electric-blue-glow); }
+
+  .copy-btn.amber-style { border-color: #664a00; color: #664a00; }
+  .copy-btn.amber-style:hover { background: rgba(255,184,0,0.08); border-color: var(--amber); color: var(--amber); }
+
+  .card-id {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── TIPS SECTION ── */
+  .tips-section {
+    margin-bottom: 40px;
+  }
+
+  .tips-grid {
+    display: grid;
+    gap: 8px;
+  }
+
+  .tip-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--electric-blue);
+    padding: 14px 16px;
+    transition: box-shadow 0.2s;
+  }
+
+  .tip-card:hover {
+    box-shadow: -3px 0 12px rgba(0, 212, 255, 0.1);
+  }
+
+  .tip-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .tip-num {
+    font-size: 9px;
+    color: var(--electric-blue);
+    border: 1px solid var(--electric-blue-dim);
+    padding: 2px 6px;
+    font-weight: 700;
+  }
+
+  .tip-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--electric-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .tip-body {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+  }
+
+  .tip-body code {
+    color: var(--neon-green);
+    background: rgba(57, 255, 20, 0.06);
+    padding: 1px 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    border: 1px solid rgba(57, 255, 20, 0.1);
+  }
+
+  /* ── NO RESULTS ── */
+  .no-results {
+    display: none;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+  }
+
+  .no-results.visible { display: block; }
+
+  .no-results-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    opacity: 0.3;
+  }
+
+  .no-results-text {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: 60px;
+    border-top: 1px solid var(--border);
+    padding: 32px 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  footer::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 1px;
+    background: var(--neon-green);
+    box-shadow: 0 0 20px var(--neon-green);
+  }
+
+  .footer-inner {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .footer-ascii {
+    font-size: 8px;
+    color: var(--text-dim);
+    line-height: 1.3;
+    margin-bottom: 16px;
+    letter-spacing: 0.05em;
+    display: none;
+  }
+
+  @media (min-width: 480px) { .footer-ascii { display: block; } }
+
+  .footer-tagline {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+
+  .footer-author {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--neon-green);
+    text-shadow: 0 0 12px rgba(57, 255, 20, 0.4);
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+  }
+
+  .footer-author span { color: var(--electric-blue); }
+
+  .footer-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .footer-badge {
+    font-size: 9px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .footer-badge.online {
+    border-color: var(--neon-green-dim);
+    color: var(--neon-green-dim);
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg-void); }
+  ::-webkit-scrollbar-thumb { background: #1a1a1a; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--neon-green-dim); }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--bg-panel);
+    border: 1px solid var(--neon-green);
+    color: var(--neon-green);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 10px 20px;
+    z-index: 999;
+    box-shadow: 0 0 20px var(--neon-green-glow);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  #toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── HIDDEN ── */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">$_</div>
+      <div class="logo-text">Termux<span>Hub</span></div>
+    </div>
+    <div class="header-status">
+      <div class="status-dot"></div>
+      <span>SYSTEM ONLINE</span>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-pre">// Documentation v2.0</div>
+  <h1 class="hero-title">
+    <span class="accent-green">Termux</span> Command<br>
+    <span class="accent-blue">Hub</span>
+  </h1>
+  <div class="terminal-prompt">
+    <span class="prompt-user">anugrah</span>
+    <span style="color: var(--text-dim)">@</span>
+    <span class="prompt-host">android</span>
+    <span style="color: var(--text-dim)">:</span>
+    <span class="prompt-path">~/termux</span>
+    <span style="color: var(--text-dim)"> $ </span>
+    <span style="color: #ccc">explore --all-commands</span>
+    <span class="cursor"></span>
+  </div>
+  <p class="hero-sub">// Reference dokumentasi perintah Termux untuk developer mobile. Dari setup dasar hingga lingkungan pengembangan lengkap di Android.</p>
+  <div class="hero-stats">
+    <div class="stat">
+      <span class="stat-num" id="total-count">0</span>
+      <span class="stat-label">Commands</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">4</span>
+      <span class="stat-label">Categories</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">7</span>
+      <span class="stat-label">Pro Tips</span>
+    </div>
+  </div>
+</section>
+
+<!-- SEARCH -->
+<div class="search-section">
+  <div class="search-wrapper">
+    <span class="search-prefix">grep</span>
+    <input type="text" id="search-input" placeholder=" &quot;search command...&quot;" autocomplete="off" spellcheck="false">
+    <span class="search-count" id="search-count"></span>
+  </div>
+</div>
+
+<!-- NAV TABS -->
+<div class="nav-tabs">
+  <button class="tab-btn active" data-cat="all">All <span class="tab-count" id="count-all">0</span></button>
+  <button class="tab-btn" data-cat="basic">Basic Setup <span class="tab-count" id="count-basic">0</span></button>
+  <button class="tab-btn" data-cat="linux">Linux Env <span class="tab-count" id="count-linux">0</span></button>
+  <button class="tab-btn" data-cat="programming">Programming <span class="tab-count" id="count-programming">0</span></button>
+  <button class="tab-btn" data-cat="git">Git Tools <span class="tab-count" id="count-git">0</span></button>
+  <button class="tab-btn" data-cat="tips">Tips &amp; Tricks</button>
+</div>
+
+<!-- MAIN CONTENT -->
+<main>
+
+  <!-- BASIC SETUP -->
+  <section class="category-section" id="section-basic" data-category="basic">
+    <div class="category-header">
+      <div class="category-icon green">⚙</div>
+      <div class="category-title-group">
+        <div class="category-name">Basic Setup</div>
+        <div class="category-desc">// Inisiasi & konfigurasi awal Termux</div>
+      </div>
+      <div class="category-badge" id="badge-basic">0 cmds</div>
+    </div>
+    <div class="cards-grid" id="grid-basic"></div>
+  </section>
+
+  <!-- LINUX ENVIRONMENT -->
+  <section class="category-section" id="section-linux" data-category="linux">
+    <div class="category-header">
+      <div class="category-icon blue">🐧</div>
+      <div class="category-title-group">
+        <div class="category-name">Linux Environment</div>
+        <div class="category-desc">// Shell, file system, dan utilitas Linux</div>
+      </div>
+      <div class="category-badge" id="badge-linux">0 cmds</div>
+    </div>
+    <div class="cards-grid" id="grid-linux"></div>
+  </section>
+
+  <!-- PROGRAMMING -->
+  <section class="category-section" id="section-programming" data-category="programming">
+    <div class="category-header">
+      <div class="category-icon amber">{'}'}</div>
+      <div class="category-title-group">
+        <div class="category-name">Programming</div>
+        <div class="category-desc">// Python, Node.js, dan runtime dev</div>
+      </div>
+      <div class="category-badge" id="badge-programming">0 cmds</div>
+    </div>
+    <div class="cards-grid" id="grid-programming"></div>
+  </section>
+
+  <!-- GIT TOOLS -->
+  <section class="category-section" id="section-git" data-category="git">
+    <div class="category-header">
+      <div class="category-icon red">⎇</div>
+      <div class="category-title-group">
+        <div class="category-name">Git Tools</div>
+        <div class="category-desc">// Version control & GitHub workflow</div>
+      </div>
+      <div class="category-badge" id="badge-git">0 cmds</div>
+    </div>
+    <div class="cards-grid" id="grid-git"></div>
+  </section>
+
+  <!-- TIPS SECTION -->
+  <section class="tips-section" id="section-tips">
+    <div class="category-header">
+      <div class="category-icon blue">💡</div>
+      <div class="category-title-group">
+        <div class="category-name">Termux Tips &amp; Tricks</div>
+        <div class="category-desc">// Optimasi &amp; workflow pro untuk mobile dev</div>
+      </div>
+    </div>
+    <div class="tips-grid" id="tips-grid"></div>
+  </section>
+
+  <!-- NO RESULTS -->
+  <div class="no-results" id="no-results">
+    <div class="no-results-icon">◌</div>
+    <div class="no-results-text">// No command found matching that query</div>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-ascii">
+      ████████╗███████╗██████╗ ███╗   ███╗██╗   ██╗██╗  ██╗<br>
+      ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║   ██║╚██╗██╔╝<br>
+      &nbsp;&nbsp;&nbsp;██║&nbsp;&nbsp;&nbsp;█████╗&nbsp;&nbsp;██████╔╝██╔████╔██║██║&nbsp;&nbsp;&nbsp;██║&nbsp;╚███╔╝<br>
+      &nbsp;&nbsp;&nbsp;██║&nbsp;&nbsp;&nbsp;██╔══╝&nbsp;&nbsp;██╔══██╗██║╚██╔╝██║██║&nbsp;&nbsp;&nbsp;██║&nbsp;██╔██╗<br>
+      &nbsp;&nbsp;&nbsp;██║&nbsp;&nbsp;&nbsp;███████╗██║&nbsp;&nbsp;██║██║&nbsp;╚═╝&nbsp;██║╚██████╔╝██╔╝&nbsp;██╗<br>
+      &nbsp;&nbsp;&nbsp;╚═╝&nbsp;&nbsp;&nbsp;╚══════╝╚═╝&nbsp;&nbsp;╚═╝╚═╝&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;╚═╝&nbsp;╚═════╝&nbsp;╚═╝&nbsp;&nbsp;╚═╝
+    </div>
+    <div class="footer-tagline">// Built with Passion by</div>
+    <div class="footer-author">Anugrah Louis <span>—</span> From Mobile to the World</div>
+    <div class="footer-meta">
+      <span class="footer-badge online">● System Online</span>
+      <span class="footer-badge">Termux v0.118+</span>
+      <span class="footer-badge">Android</span>
+      <span class="footer-badge">GitHub Pages Ready</span>
+    </div>
+  </div>
+</footer>
+
+<!-- TOAST -->
+<div id="toast">✓ Copied to clipboard</div>
+
+<script>
+// ──────────────────────────────────────────────
+//  DATA
+// ──────────────────────────────────────────────
+const commands = [
+  // BASIC SETUP
+  {
+    id: 'BS-001', cat: 'basic', label: 'Update & Upgrade',
+    cmd: 'pkg update && pkg upgrade',
+    desc: 'Update daftar paket dan upgrade semua package yang sudah terinstall.',
+    tags: ['essential', 'first-run']
+  },
+  {
+    id: 'BS-002', cat: 'basic', label: 'Install Storage',
+    cmd: 'termux-setup-storage',
+    desc: 'Memberikan akses Termux ke storage internal Android.',
+    tags: ['permission', 'setup']
+  },
+  {
+    id: 'BS-003', cat: 'basic', label: 'Install cURL',
+    cmd: 'pkg install curl',
+    desc: 'Install cURL untuk transfer data via berbagai protokol.',
+    tags: ['network', 'tool']
+  },
+  {
+    id: 'BS-004', cat: 'basic', label: 'Install wget',
+    cmd: 'pkg install wget',
+    desc: 'Install wget untuk download file dari internet.',
+    tags: ['download', 'tool']
+  },
+  {
+    id: 'BS-005', cat: 'basic', label: 'Install Text Editor',
+    cmd: 'pkg install nano vim',
+    desc: 'Install nano (beginner-friendly) dan vim (pro) sebagai text editor terminal.',
+    tags: ['editor', 'essential']
+  },
+  {
+    id: 'BS-006', cat: 'basic', label: 'Install OpenSSH',
+    cmd: 'pkg install openssh',
+    desc: 'Install OpenSSH untuk koneksi SSH ke server remote.',
+    tags: ['ssh', 'remote']
+  },
+
+  // LINUX ENVIRONMENT
+  {
+    id: 'LE-001', cat: 'linux', label: 'List Files',
+    cmd: 'ls -la --color=auto',
+    desc: 'Tampilkan semua file termasuk hidden file dengan detail lengkap dan warna.',
+    tags: ['filesystem', 'basic'],
+    accent: 'blue'
+  },
+  {
+    id: 'LE-002', cat: 'linux', label: 'Change Directory',
+    cmd: 'cd ~/storage/shared',
+    desc: 'Navigasi ke folder shared storage Android dari Termux.',
+    tags: ['navigation', 'storage'],
+    accent: 'blue'
+  },
+  {
+    id: 'LE-003', cat: 'linux', label: 'Create Directory',
+    cmd: 'mkdir -p projects/myapp',
+    desc: 'Buat folder beserta parent directory-nya sekaligus.',
+    tags: ['filesystem'],
+    accent: 'blue'
+  },
+  {
+    id: 'LE-004', cat: 'linux', label: 'Process Monitor',
+    cmd: 'pkg install htop && htop',
+    desc: 'Install dan jalankan htop untuk monitor proses dan resource yang berjalan.',
+    tags: ['monitor', 'system'],
+    accent: 'blue'
+  },
+  {
+    id: 'LE-005', cat: 'linux', label: 'Disk Usage',
+    cmd: 'df -h && du -sh *',
+    desc: 'Cek penggunaan disk space secara keseluruhan dan per folder.',
+    tags: ['storage', 'info'],
+    accent: 'blue'
+  },
+  {
+    id: 'LE-006', cat: 'linux', label: 'Find File',
+    cmd: 'find . -name "*.py" -type f',
+    desc: 'Cari file dengan extension .py secara rekursif di direktori saat ini.',
+    tags: ['search', 'filesystem'],
+    accent: 'blue'
+  },
+  {
+    id: 'LE-007', cat: 'linux', label: 'Compress File',
+    cmd: 'tar -czf archive.tar.gz folder/',
+    desc: 'Kompres folder menjadi file .tar.gz.',
+    tags: ['compress', 'archive'],
+    accent: 'blue'
+  },
+  {
+    id: 'LE-008', cat: 'linux', label: 'Network Info',
+    cmd: 'pkg install iproute2 && ip addr',
+    desc: 'Install iproute2 dan lihat informasi IP address aktif.',
+    tags: ['network', 'info'],
+    accent: 'blue'
+  },
+
+  // PROGRAMMING
+  {
+    id: 'PY-001', cat: 'programming', label: 'Install Python',
+    cmd: 'pkg install python',
+    desc: 'Install Python 3 interpreter di Termux.',
+    tags: ['python', 'install'],
+    accent: 'amber'
+  },
+  {
+    id: 'PY-002', cat: 'programming', label: 'Install pip packages',
+    cmd: 'pip install flask requests numpy',
+    desc: 'Install library Python populer: Flask, Requests, dan NumPy.',
+    tags: ['python', 'pip'],
+    accent: 'amber'
+  },
+  {
+    id: 'PY-003', cat: 'programming', label: 'Run Python Script',
+    cmd: 'python3 app.py',
+    desc: 'Jalankan script Python dengan interpreter Python 3.',
+    tags: ['python', 'run'],
+    accent: 'amber'
+  },
+  {
+    id: 'PY-004', cat: 'programming', label: 'Python Virtual Env',
+    cmd: 'python -m venv venv && source venv/bin/activate',
+    desc: 'Buat dan aktifkan virtual environment untuk isolasi dependensi project.',
+    tags: ['python', 'venv'],
+    accent: 'amber'
+  },
+  {
+    id: 'ND-001', cat: 'programming', label: 'Install Node.js',
+    cmd: 'pkg install nodejs',
+    desc: 'Install Node.js dan npm package manager.',
+    tags: ['nodejs', 'install'],
+    accent: 'amber'
+  },
+  {
+    id: 'ND-002', cat: 'programming', label: 'Init npm Project',
+    cmd: 'npm init -y',
+    desc: 'Inisiasi project Node.js baru dengan konfigurasi default.',
+    tags: ['nodejs', 'npm'],
+    accent: 'amber'
+  },
+  {
+    id: 'ND-003', cat: 'programming', label: 'Install Express.js',
+    cmd: 'npm install express',
+    desc: 'Install Express.js framework untuk membangun server web.',
+    tags: ['nodejs', 'express'],
+    accent: 'amber'
+  },
+  {
+    id: 'ND-004', cat: 'programming', label: 'Run Node App',
+    cmd: 'node server.js',
+    desc: 'Jalankan aplikasi Node.js.',
+    tags: ['nodejs', 'run'],
+    accent: 'amber'
+  },
+
+  // GIT TOOLS
+  {
+    id: 'GT-001', cat: 'git', label: 'Install Git',
+    cmd: 'pkg install git',
+    desc: 'Install Git version control system di Termux.',
+    tags: ['git', 'install'],
+    accent: 'red'
+  },
+  {
+    id: 'GT-002', cat: 'git', label: 'Global Config',
+    cmd: 'git config --global user.name "YourName"\ngit config --global user.email "email@mail.com"',
+    desc: 'Set identitas global Git untuk semua repository.',
+    tags: ['git', 'config'],
+    accent: 'red'
+  },
+  {
+    id: 'GT-003', cat: 'git', label: 'Clone Repository',
+    cmd: 'git clone https://github.com/user/repo.git',
+    desc: 'Clone repository dari GitHub ke local directory.',
+    tags: ['git', 'clone'],
+    accent: 'red'
+  },
+  {
+    id: 'GT-004', cat: 'git', label: 'Init & First Commit',
+    cmd: 'git init && git add . && git commit -m "init: first commit"',
+    desc: 'Inisiasi repo baru, stage semua file, dan buat commit pertama.',
+    tags: ['git', 'init'],
+    accent: 'red'
+  },
+  {
+    id: 'GT-005', cat: 'git', label: 'Push to GitHub',
+    cmd: 'git push origin main',
+    desc: 'Push commit lokal ke branch main di GitHub.',
+    tags: ['git', 'push'],
+    accent: 'red'
+  },
+  {
+    id: 'GT-006', cat: 'git', label: 'Pull Latest',
+    cmd: 'git pull origin main',
+    desc: 'Ambil dan merge perubahan terbaru dari remote repo.',
+    tags: ['git', 'pull'],
+    accent: 'red'
+  },
+  {
+    id: 'GT-007', cat: 'git', label: 'Create Branch',
+    cmd: 'git checkout -b feature/new-feature',
+    desc: 'Buat branch baru dan langsung pindah ke branch tersebut.',
+    tags: ['git', 'branch'],
+    accent: 'red'
+  },
+  {
+    id: 'GT-008', cat: 'git', label: 'Status & Log',
+    cmd: 'git status && git log --oneline -10',
+    desc: 'Lihat status working directory dan 10 commit terakhir.',
+    tags: ['git', 'info'],
+    accent: 'red'
+  },
+];
+
+const tips = [
+  {
+    num: '01',
+    title: 'Install Ubuntu di Android (proot-distro)',
+    body: `Install Ubuntu penuh di Android tanpa root. Jalankan: <code>pkg install proot-distro</code> kemudian <code>proot-distro install ubuntu</code>. Masuk ke Ubuntu dengan <code>proot-distro login ubuntu</code>. Kamu mendapat full Linux environment.`
+  },
+  {
+    num: '02',
+    title: 'Aktifkan Extra Keys di Keyboard',
+    body: `Edit file <code>~/.termux/termux.properties</code> dan tambahkan <code>extra-keys = [['ESC','/','-','HOME','UP','END','PGUP'],['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN']]</code>. Reload dengan <code>termux-reload-settings</code>.`
+  },
+  {
+    num: '03',
+    title: 'Jalankan Script Otomatis saat Buka Termux',
+    body: `Buat file <code>~/.bashrc</code> atau edit yang sudah ada. Tambahkan command yang ingin dijalankan otomatis, misalnya <code>echo "System Ready"</code> atau start server. Source dengan <code>source ~/.bashrc</code>.`
+  },
+  {
+    num: '04',
+    title: 'Gunakan tmux untuk Multi-Session',
+    body: `Install dengan <code>pkg install tmux</code>. Buka session baru: <code>tmux new -s dev</code>. Split panel: <code>Ctrl+B, %</code> (vertikal) atau <code>Ctrl+B, "</code> (horizontal). Detach: <code>Ctrl+B, D</code>. Reattach: <code>tmux attach -t dev</code>.`
+  },
+  {
+    num: '05',
+    title: 'Akses Termux via SSH dari PC',
+    body: `Di Termux: <code>pkg install openssh && sshd</code>. Cek port dengan <code>sshd -d</code> (biasanya 8022). Dari PC: <code>ssh -p 8022 user@IP_HP</code>. Cek IP Android dengan <code>ip addr</code>.`
+  },
+  {
+    num: '06',
+    title: 'Simpan API Key di Environment Variable',
+    body: `Jangan hardcode API key. Tambahkan ke <code>~/.bashrc</code>: <code>export GROQ_API_KEY="your_key_here"</code>. Lalu akses di script Python: <code>import os; key = os.environ.get('GROQ_API_KEY')</code>.`
+  },
+  {
+    num: '07',
+    title: 'Buat Alias untuk Command Panjang',
+    body: `Edit <code>~/.bashrc</code> dan tambahkan alias: <code>alias gs="git status"</code>, <code>alias gp="git push origin main"</code>, <code>alias py="python3"</code>. Hemat banyak waktu saat coding setiap hari.`
+  },
+];
+
+// ──────────────────────────────────────────────
+//  RENDER
+// ──────────────────────────────────────────────
+function getAccentClass(accent) {
+  const map = { blue: 'blue', amber: 'amber', red: 'red' };
+  return map[accent] || '';
+}
+
+function buildCard(cmd) {
+  const accent = cmd.accent || 'green';
+  const copyBtnClass = accent === 'green' ? '' : `${accent}-style`;
+  const tagAccent = accent === 'green' ? '' : accent;
+
+  const tagsHTML = cmd.tags.map(t =>
+    `<span class="cmd-tag ${tagAccent}">${t}</span>`
+  ).join('');
+
+  const codeLines = cmd.cmd.split('\n').map(line =>
+    `<span class="prompt-char">$</span>${escapeHTML(line)}`
+  ).join('<br>');
+
+  return `
+    <div class="cmd-card ${getAccentClass(accent)}" data-search="${cmd.label.toLowerCase()} ${cmd.cmd.toLowerCase()} ${cmd.tags.join(' ')} ${cmd.desc.toLowerCase()}">
+      <div class="card-inner">
+        <div class="card-top">
+          <div class="card-label">${cmd.label}</div>
+        </div>
+        <div class="cmd-tags">${tagsHTML}</div>
+        <div class="cmd-code">${codeLines}</div>
+        <div class="cmd-desc">${cmd.desc}</div>
+        <div class="card-footer">
+          <button class="copy-btn ${copyBtnClass}" onclick="copyCmd(this, '${escapeAttr(cmd.cmd)}')">
+            <span class="copy-icon">⧉</span> Copy
+          </button>
+          <span class="card-id">${cmd.id}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function escapeHTML(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function escapeAttr(str) {
+  return str.replace(/'/g, "\\'").replace(/\n/g, '\\n');
+}
+
+function renderAll() {
+  const cats = ['basic', 'linux', 'programming', 'git'];
+  let total = 0;
+
+  cats.forEach(cat => {
+    const filtered = commands.filter(c => c.cat === cat);
+    const grid = document.getElementById(`grid-${cat}`);
+    grid.innerHTML = filtered.map(buildCard).join('');
+    document.getElementById(`badge-${cat}`).textContent = `${filtered.length} cmds`;
+    document.getElementById(`count-${cat}`).textContent = filtered.length;
+    total += filtered.length;
+  });
+
+  document.getElementById('count-all').textContent = total;
+  document.getElementById('total-count').textContent = total;
+
+  // Tips
+  const tipsGrid = document.getElementById('tips-grid');
+  tipsGrid.innerHTML = tips.map(t => `
+    <div class="tip-card">
+      <div class="tip-header">
+        <span class="tip-num">${t.num}</span>
+        <span class="tip-title">${t.title}</span>
+      </div>
+      <div class="tip-body">${t.body}</div>
+    </div>
+  `).join('');
+}
+
+// ──────────────────────────────────────────────
+//  SEARCH
+// ──────────────────────────────────────────────
+const searchInput = document.getElementById('search-input');
+const searchCount = document.getElementById('search-count');
+const noResults = document.getElementById('no-results');
+
+searchInput.addEventListener('input', function() {
+  const q = this.value.toLowerCase().trim();
+  const allCards = document.querySelectorAll('.cmd-card');
+  let visible = 0;
+
+  if (!q) {
+    allCards.forEach(c => c.classList.remove('hidden'));
+    document.querySelectorAll('.category-section').forEach(s => s.classList.remove('hidden'));
+    searchCount.textContent = '';
+    noResults.classList.remove('visible');
+    return;
+  }
+
+  // Switch to 'all' tab
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-cat="all"]').classList.add('active');
+  document.querySelectorAll('.category-section').forEach(s => s.classList.remove('hidden'));
+  document.getElementById('section-tips').classList.add('hidden');
+
+  allCards.forEach(card => {
+    const data = card.getAttribute('data-search') || '';
+    if (data.includes(q)) {
+      card.classList.remove('hidden');
+      visible++;
+    } else {
+      card.classList.add('hidden');
+    }
+  });
+
+  // Hide empty category sections
+  document.querySelectorAll('.category-section').forEach(section => {
+    const visibleCards = section.querySelectorAll('.cmd-card:not(.hidden)');
+    section.classList.toggle('hidden', visibleCards.length === 0);
+  });
+
+  searchCount.textContent = `${visible} result${visible !== 1 ? 's' : ''}`;
+  noResults.classList.toggle('visible', visible === 0);
+});
+
+// ──────────────────────────────────────────────
+//  TABS
+// ──────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    searchInput.value = '';
+    searchCount.textContent = '';
+    noResults.classList.remove('visible');
+
+    const cat = this.getAttribute('data-cat');
+    const allCards = document.querySelectorAll('.cmd-card');
+    allCards.forEach(c => c.classList.remove('hidden'));
+
+    const tipsSection = document.getElementById('section-tips');
+
+    if (cat === 'tips') {
+      document.querySelectorAll('.category-section').forEach(s => s.classList.add('hidden'));
+      tipsSection.classList.remove('hidden');
+    } else {
+      tipsSection.classList.add('hidden');
+      if (cat === 'all') {
+        document.querySelectorAll('.category-section').forEach(s => s.classList.remove('hidden'));
+      } else {
+        document.querySelectorAll('.category-section').forEach(s => {
+          s.classList.toggle('hidden', s.getAttribute('data-category') !== cat);
+        });
+      }
+    }
+  });
+});
+
+// ──────────────────────────────────────────────
+//  COPY
+// ──────────────────────────────────────────────
+let toastTimeout;
+
+function copyCmd(btn, raw) {
+  const text = raw.replace(/\\n/g, '\n');
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    btn.innerHTML = '<span>✓</span> Copied!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<span class="copy-icon">⧉</span> Copy';
+    }, 2000);
+    showToast('✓ Copied to clipboard');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✓ Copied!');
+  });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ──────────────────────────────────────────────
+//  INIT
+// ──────────────────────────────────────────────
+renderAll();
+</script>
+</body>
+</html>
